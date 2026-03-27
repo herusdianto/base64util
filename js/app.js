@@ -1,0 +1,494 @@
+/**
+ * Base64 Utility - Encode & Decode Base64
+ * Supports: String, Image, and File
+ */
+
+class Base64Util {
+    constructor() {
+        this.encodeFile = null;
+        this.decodedBlob = null;
+        this.decodedFilename = 'decoded_file';
+        this.init();
+    }
+
+    init() {
+        this.bindTabs();
+        this.bindEncodeEvents();
+        this.bindDecodeEvents();
+        this.bindCopyButtons();
+        this.bindDownloadButtons();
+    }
+
+    // ==================== Tab Navigation ====================
+    bindTabs() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+
+                // Update buttons
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+    }
+
+    // ==================== Encode Events ====================
+    bindEncodeEvents() {
+        // Input type toggle
+        const encodeTypeRadios = document.querySelectorAll('input[name="encode-type"]');
+        encodeTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                document.getElementById('encode-text-input').classList.toggle('hidden', radio.value !== 'text');
+                document.getElementById('encode-file-input').classList.toggle('hidden', radio.value !== 'file');
+            });
+        });
+
+        // File input & drag-drop
+        const dropZone = document.getElementById('encode-drop-zone');
+        const fileInput = document.getElementById('encode-file');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                this.handleEncodeFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                this.handleEncodeFile(e.target.files[0]);
+            }
+        });
+
+        // Encode button
+        document.getElementById('encode-btn').addEventListener('click', () => this.encode());
+    }
+
+    handleEncodeFile(file) {
+        this.encodeFile = file;
+        const preview = document.getElementById('encode-file-preview');
+        preview.classList.remove('hidden');
+
+        let previewHTML = '';
+
+        // If it's an image, show preview
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewHTML = `
+                    <img src="${e.target.result}" class="preview-image" alt="Preview">
+                    <div class="file-details">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${this.formatFileSize(file.size)}</span>
+                        <button class="remove-file">✕ Remove</button>
+                    </div>
+                `;
+                preview.innerHTML = previewHTML;
+                preview.querySelector('.remove-file').addEventListener('click', () => this.removeEncodeFile());
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewHTML = `
+                <div class="file-details">
+                    <span class="file-name">📄 ${file.name}</span>
+                    <span class="file-size">${this.formatFileSize(file.size)}</span>
+                    <button class="remove-file">✕ Remove</button>
+                </div>
+            `;
+            preview.innerHTML = previewHTML;
+            preview.querySelector('.remove-file').addEventListener('click', () => this.removeEncodeFile());
+        }
+    }
+
+    removeEncodeFile() {
+        this.encodeFile = null;
+        document.getElementById('encode-file').value = '';
+        document.getElementById('encode-file-preview').classList.add('hidden');
+    }
+
+    encode() {
+        const inputType = document.querySelector('input[name="encode-type"]:checked').value;
+
+        if (inputType === 'text') {
+            const text = document.getElementById('encode-text').value;
+            if (!text.trim()) {
+                this.showStatus('Please enter text to encode', 'error');
+                return;
+            }
+            const encoded = btoa(unescape(encodeURIComponent(text)));
+            document.getElementById('encode-output').value = encoded;
+            this.showStatus('Text encoded successfully!', 'success');
+        } else {
+            if (!this.encodeFile) {
+                this.showStatus('Please select a file to encode', 'error');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result.split(',')[1];
+                document.getElementById('encode-output').value = base64;
+                this.showStatus(`File "${this.encodeFile.name}" encoded successfully!`, 'success');
+            };
+            reader.onerror = () => {
+                this.showStatus('Error reading file', 'error');
+            };
+            reader.readAsDataURL(this.encodeFile);
+        }
+    }
+
+    // ==================== Decode Events ====================
+    bindDecodeEvents() {
+        // Input type toggle
+        const decodeInputTypeRadios = document.querySelectorAll('input[name="decode-input-type"]');
+        decodeInputTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                document.getElementById('decode-text-input').classList.toggle('hidden', radio.value !== 'text');
+                document.getElementById('decode-file-input').classList.toggle('hidden', radio.value !== 'file');
+            });
+        });
+
+        // File drop zone for decode
+        const dropZone = document.getElementById('decode-drop-zone');
+        const fileInput = document.getElementById('decode-file');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                this.handleDecodeFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                this.handleDecodeFile(e.target.files[0]);
+            }
+        });
+
+        // Decode button
+        document.getElementById('decode-btn').addEventListener('click', () => this.decode());
+    }
+
+    handleDecodeFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('decode-text').value = e.target.result.trim();
+            // Switch back to text input view to show the loaded content
+            document.querySelector('input[name="decode-input-type"][value="text"]').checked = true;
+            document.getElementById('decode-text-input').classList.remove('hidden');
+            document.getElementById('decode-file-input').classList.add('hidden');
+            this.showStatus('File loaded successfully!', 'success');
+        };
+        reader.readAsText(file);
+    }
+
+    decode() {
+        const inputType = document.querySelector('input[name="decode-input-type"]:checked').value;
+        const outputType = document.querySelector('input[name="decode-output-type"]:checked').value;
+
+        let base64String = document.getElementById('decode-text').value.trim();
+
+        if (!base64String) {
+            this.showStatus('Please enter Base64 string to decode', 'error');
+            return;
+        }
+
+        // Remove data URL prefix if present
+        if (base64String.includes(',')) {
+            base64String = base64String.split(',')[1];
+        }
+
+        // Remove whitespace and newlines
+        base64String = base64String.replace(/\s/g, '');
+
+        try {
+            const binaryString = atob(base64String);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Detect file type
+            const detectedType = this.detectFileType(bytes);
+            let finalOutputType = outputType;
+
+            if (outputType === 'auto') {
+                if (detectedType.category === 'image') {
+                    finalOutputType = 'image';
+                } else if (detectedType.category === 'text') {
+                    finalOutputType = 'text';
+                } else {
+                    finalOutputType = 'file';
+                }
+            }
+
+            // Hide all output sections
+            document.querySelectorAll('.decode-output').forEach(el => el.classList.remove('active'));
+
+            // Create blob
+            this.decodedBlob = new Blob([bytes], { type: detectedType.mimeType });
+            this.decodedFilename = 'decoded' + detectedType.extension;
+
+            switch (finalOutputType) {
+                case 'text':
+                    this.showTextOutput(binaryString);
+                    break;
+                case 'image':
+                    this.showImageOutput(bytes, detectedType);
+                    break;
+                case 'file':
+                    this.showFileOutput(bytes, detectedType);
+                    break;
+            }
+
+            this.showStatus(`Decoded successfully! Type: ${detectedType.name}`, 'success');
+        } catch (error) {
+            console.error(error);
+            this.showStatus('Invalid Base64 string', 'error');
+        }
+    }
+
+    showTextOutput(text) {
+        const outputDiv = document.getElementById('decode-output-text');
+        try {
+            // Try to decode as UTF-8
+            const decoded = decodeURIComponent(escape(text));
+            document.getElementById('decode-result-text').value = decoded;
+        } catch {
+            // If UTF-8 fails, show as-is
+            document.getElementById('decode-result-text').value = text;
+        }
+        outputDiv.classList.remove('hidden');
+        outputDiv.classList.add('active');
+    }
+
+    showImageOutput(bytes, fileType) {
+        const blob = new Blob([bytes], { type: fileType.mimeType });
+        const url = URL.createObjectURL(blob);
+        const img = document.getElementById('decode-result-image');
+        const outputDiv = document.getElementById('decode-output-image');
+
+        img.onload = () => {
+            img.style.display = 'block';
+        };
+        img.onerror = () => {
+            console.error('Failed to load image');
+            img.style.display = 'none';
+        };
+        img.src = url;
+
+        outputDiv.classList.remove('hidden');
+        outputDiv.classList.add('active');
+    }
+
+    showFileOutput(bytes, fileType) {
+        const fileInfo = document.getElementById('decode-file-info');
+        const outputDiv = document.getElementById('decode-output-file');
+
+        fileInfo.querySelector('.filename').textContent = 'decoded' + fileType.extension;
+        fileInfo.querySelector('.filesize').textContent = this.formatFileSize(bytes.length);
+        fileInfo.querySelector('.filetype').textContent = fileType.name;
+        fileInfo.querySelector('.icon').textContent = this.getFileIcon(fileType.category);
+
+        outputDiv.classList.remove('hidden');
+        outputDiv.classList.add('active');
+    }
+
+    // ==================== File Type Detection ====================
+    detectFileType(bytes) {
+        // Check for common file signatures (magic bytes)
+        const signatures = {
+            // Images
+            'PNG': { bytes: [0x89, 0x50, 0x4E, 0x47], mimeType: 'image/png', extension: '.png', category: 'image' },
+            'JPEG': { bytes: [0xFF, 0xD8, 0xFF], mimeType: 'image/jpeg', extension: '.jpg', category: 'image' },
+            'GIF': { bytes: [0x47, 0x49, 0x46], mimeType: 'image/gif', extension: '.gif', category: 'image' },
+            'WebP': { bytes: [0x52, 0x49, 0x46, 0x46], check: (b) => b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50, mimeType: 'image/webp', extension: '.webp', category: 'image' },
+            'BMP': { bytes: [0x42, 0x4D], mimeType: 'image/bmp', extension: '.bmp', category: 'image' },
+            'ICO': { bytes: [0x00, 0x00, 0x01, 0x00], mimeType: 'image/x-icon', extension: '.ico', category: 'image' },
+            'SVG': { bytes: [0x3C, 0x73, 0x76, 0x67], mimeType: 'image/svg+xml', extension: '.svg', category: 'image' },
+
+            // Documents
+            'PDF': { bytes: [0x25, 0x50, 0x44, 0x46], mimeType: 'application/pdf', extension: '.pdf', category: 'document' },
+
+            // Archives
+            'ZIP': { bytes: [0x50, 0x4B, 0x03, 0x04], mimeType: 'application/zip', extension: '.zip', category: 'archive' },
+            'GZIP': { bytes: [0x1F, 0x8B], mimeType: 'application/gzip', extension: '.gz', category: 'archive' },
+            'RAR': { bytes: [0x52, 0x61, 0x72, 0x21], mimeType: 'application/x-rar-compressed', extension: '.rar', category: 'archive' },
+            '7Z': { bytes: [0x37, 0x7A, 0xBC, 0xAF], mimeType: 'application/x-7z-compressed', extension: '.7z', category: 'archive' },
+
+            // Audio
+            'MP3': { bytes: [0x49, 0x44, 0x33], mimeType: 'audio/mpeg', extension: '.mp3', category: 'audio' },
+            'MP3_2': { bytes: [0xFF, 0xFB], mimeType: 'audio/mpeg', extension: '.mp3', category: 'audio' },
+            'WAV': { bytes: [0x52, 0x49, 0x46, 0x46], check: (b) => b[8] === 0x57 && b[9] === 0x41 && b[10] === 0x56 && b[11] === 0x45, mimeType: 'audio/wav', extension: '.wav', category: 'audio' },
+            'OGG': { bytes: [0x4F, 0x67, 0x67, 0x53], mimeType: 'audio/ogg', extension: '.ogg', category: 'audio' },
+
+            // Video
+            'MP4': { bytes: [0x00, 0x00, 0x00], check: (b) => b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70, mimeType: 'video/mp4', extension: '.mp4', category: 'video' },
+            'AVI': { bytes: [0x52, 0x49, 0x46, 0x46], check: (b) => b[8] === 0x41 && b[9] === 0x56 && b[10] === 0x49 && b[11] === 0x20, mimeType: 'video/avi', extension: '.avi', category: 'video' },
+
+            // Executables
+            'EXE': { bytes: [0x4D, 0x5A], mimeType: 'application/x-msdownload', extension: '.exe', category: 'executable' },
+        };
+
+        for (const [name, sig] of Object.entries(signatures)) {
+            let match = true;
+            for (let i = 0; i < sig.bytes.length; i++) {
+                if (bytes[i] !== sig.bytes[i]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match && sig.check) {
+                match = sig.check(bytes);
+            }
+            if (match) {
+                return { name, ...sig };
+            }
+        }
+
+        // Check if it's likely text
+        let isText = true;
+        const checkLength = Math.min(bytes.length, 512);
+        for (let i = 0; i < checkLength; i++) {
+            const byte = bytes[i];
+            if (byte < 0x09 || (byte > 0x0D && byte < 0x20 && byte !== 0x1B)) {
+                if (byte > 0x7E && byte < 0xC0) {
+                    isText = false;
+                    break;
+                }
+            }
+        }
+
+        if (isText) {
+            return { name: 'Text', mimeType: 'text/plain', extension: '.txt', category: 'text' };
+        }
+
+        return { name: 'Binary Data', mimeType: 'application/octet-stream', extension: '.bin', category: 'binary' };
+    }
+
+    getFileIcon(category) {
+        const icons = {
+            'image': '🖼️',
+            'document': '📄',
+            'archive': '📦',
+            'audio': '🎵',
+            'video': '🎬',
+            'executable': '⚙️',
+            'text': '📝',
+            'binary': '📁'
+        };
+        return icons[category] || '📄';
+    }
+
+    // ==================== Copy & Download ====================
+    bindCopyButtons() {
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.dataset.target;
+                const textarea = document.getElementById(targetId);
+                if (textarea && textarea.value) {
+                    navigator.clipboard.writeText(textarea.value)
+                        .then(() => this.showStatus('Copied to clipboard!', 'success'))
+                        .catch(() => this.showStatus('Failed to copy', 'error'));
+                }
+            });
+        });
+    }
+
+    bindDownloadButtons() {
+        // Download encoded text
+        document.querySelectorAll('.download-btn[data-content]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const contentId = btn.dataset.content;
+                const filename = btn.dataset.filename;
+                const content = document.getElementById(contentId).value;
+                if (content) {
+                    this.downloadText(content, filename);
+                }
+            });
+        });
+
+        // Download decoded image
+        document.getElementById('download-image-btn').addEventListener('click', () => {
+            if (this.decodedBlob) {
+                this.downloadBlob(this.decodedBlob, this.decodedFilename);
+            }
+        });
+
+        // Download decoded file
+        document.getElementById('download-file-btn').addEventListener('click', () => {
+            if (this.decodedBlob) {
+                this.downloadBlob(this.decodedBlob, this.decodedFilename);
+            }
+        });
+    }
+
+    downloadText(content, filename) {
+        const blob = new Blob([content], { type: 'text/plain' });
+        this.downloadBlob(blob, filename);
+    }
+
+    downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showStatus(`Downloaded: ${filename}`, 'success');
+    }
+
+    // ==================== Utilities ====================
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    showStatus(message, type) {
+        const status = document.getElementById('status');
+        status.textContent = message;
+        status.className = `status ${type}`;
+        status.classList.remove('hidden');
+
+        setTimeout(() => {
+            status.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// Initialize the app
+document.addEventListener('DOMContentLoaded', () => {
+    new Base64Util();
+});
+
