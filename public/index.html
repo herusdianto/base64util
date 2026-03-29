@@ -82,9 +82,11 @@
                 <h2>Output (Base64)</h2>
                 <textarea id="encode-output" readonly placeholder="Encoded result will appear here..."></textarea>
                 <label for="encode-output" class="visually-hidden">Encoded Base64 output</label>
+
+                <!-- Action Buttons -->
                 <div class="output-actions">
-                    <button class="copy-btn" data-target="encode-output">Copy</button>
-                    <button class="download-btn" data-content="encode-output" data-filename="encoded.txt">Download</button>
+                    <button class="btn btn-lg copy-btn" data-target="encode-output">Copy</button>
+                    <button class="btn btn-lg btn-secondary download-btn" data-content="encode-output" data-filename="encoded.txt">Download</button>
                 </div>
             </div>
         </div>
@@ -170,7 +172,7 @@
                         <img id="decode-result-image" src="" alt="Decoded image" style="display: none;">
                     </div>
                     <div class="output-actions">
-                        <button id="download-image-btn" class="download-btn">Download Image</button>
+                        <button id="download-image-btn" class="btn btn-lg btn-secondary" data-content="decode-result-image" data-filename="decoded-image">Download</button>
                     </div>
                 </div>
 
@@ -185,7 +187,7 @@
                         </div>
                     </div>
                     <div class="output-actions">
-                        <button id="download-file-btn" class="download-btn">Download File</button>
+                        <button id="download-file-btn" class="btn btn-lg btn-secondary" data-content="decode-file-info" data-filename="decoded_file">Download</button>
                     </div>
                 </div>
             </div>
