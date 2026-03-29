@@ -312,6 +312,13 @@ textarea::placeholder {
     background: rgba(99, 102, 241, 0.1);
 }
 
+.file-drop-zone.dragover {
+    border-color: var(--secondary-color);
+    background: rgba(16, 185, 129, 0.12); /* subtle green tint for drop */
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
 .file-drop-zone input[type="file"] {
     position: absolute;
     top: 0;
@@ -844,4 +851,3 @@ footer .copyright {
         flex: 1;
     }
 }
-
