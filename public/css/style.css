@@ -529,12 +529,12 @@ textarea::placeholder {
 
 .copy-btn:hover {
     border-color: var(--primary-color);
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(99, 102, 241, 0.1);
 }
 
 .download-btn:hover {
     border-color: var(--secondary-color);
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(16, 185, 129, 0.1);
 }
 
 /* Decode Output Sections */
@@ -753,7 +753,7 @@ footer .copyright {
 
 .dark-mode .copy-btn:hover {
     border-color: var(--primary-color);
-    background: #1e293b;
+    background: #333;
 }
 
 .dark-mode .download-btn:hover {
