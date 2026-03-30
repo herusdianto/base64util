@@ -75,7 +75,6 @@
                     <div id="encode-file-preview" class="file-preview hidden"></div>
                 </div>
 
-                <button id="encode-btn" class="action-btn">Encode to Base64</button>
             </div>
 
             <div class="output-section">
@@ -151,7 +150,6 @@
                     </div>
                 </div>
 
-                <button id="decode-btn" class="action-btn">Decode from Base64</button>
             </div>
 
             <div class="output-section">
@@ -162,7 +160,8 @@
                     <textarea id="decode-result-text" readonly placeholder="Decoded text will appear here..."></textarea>
                     <label for="decode-result-text" class="visually-hidden">Decoded text output</label>
                     <div class="output-actions">
-                        <button class="copy-btn" data-target="decode-result-text">Copy</button>
+                        <button class="btn btn-lg copy-btn" data-target="decode-result-text">Copy</button>
+                        <button class="btn btn-lg btn-secondary download-btn" data-content="decode-result-text" data-filename="decoded.txt">Download</button>
                     </div>
                 </div>
 

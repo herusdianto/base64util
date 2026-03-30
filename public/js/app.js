@@ -49,6 +49,8 @@ class Base64Util {
             radio.addEventListener('change', () => {
                 document.getElementById('encode-text-input').classList.toggle('hidden', radio.value !== 'text');
                 document.getElementById('encode-file-input').classList.toggle('hidden', radio.value !== 'file');
+                // Auto-trigger encode on type change
+                this.encode();
             });
         });
 
@@ -70,17 +72,27 @@ class Base64Util {
             dropZone.classList.remove('dragover');
             if (e.dataTransfer.files.length) {
                 this.handleEncodeFile(e.dataTransfer.files[0]);
+                this.encode(); // Auto-trigger encode after file drop
             }
         });
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) {
                 this.handleEncodeFile(e.target.files[0]);
+                this.encode(); // Auto-trigger encode after file select
             }
         });
 
-        // Encode button
-        document.getElementById('encode-btn').addEventListener('click', () => this.encode());
+        // Auto-trigger encode on text input
+        const encodeText = document.getElementById('encode-text');
+        if (encodeText) {
+            encodeText.addEventListener('input', () => {
+                if (document.querySelector('input[name="encode-type"]:checked').value === 'text') {
+                    this.encode();
+                }
+            });
+        }
+        // Remove encode button event binding
     }
 
     handleEncodeFile(file) {
@@ -131,7 +143,7 @@ class Base64Util {
         if (inputType === 'text') {
             const text = document.getElementById('encode-text').value;
             if (!text.trim()) {
-                this.showStatus('Please enter text to encode', 'error');
+                document.getElementById('encode-output').value = '';
                 return;
             }
             const encoded = btoa(unescape(encodeURIComponent(text)));
@@ -139,7 +151,7 @@ class Base64Util {
             this.showStatus('Text encoded successfully!', 'success');
         } else {
             if (!this.encodeFile) {
-                this.showStatus('Please select a file to encode', 'error');
+                document.getElementById('encode-output').value = '';
                 return;
             }
             const reader = new FileReader();
@@ -164,6 +176,8 @@ class Base64Util {
             radio.addEventListener('change', () => {
                 document.getElementById('decode-text-input').classList.toggle('hidden', radio.value !== 'text');
                 document.getElementById('decode-file-input').classList.toggle('hidden', radio.value !== 'file');
+                // Auto-trigger decode on type change
+                this.decode();
             });
         });
 
@@ -185,17 +199,34 @@ class Base64Util {
             dropZone.classList.remove('dragover');
             if (e.dataTransfer.files.length) {
                 this.handleDecodeFile(e.dataTransfer.files[0]);
+                setTimeout(() => this.decode(), 0); // Auto-trigger decode after file drop
             }
         });
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) {
                 this.handleDecodeFile(e.target.files[0]);
+                setTimeout(() => this.decode(), 0); // Auto-trigger decode after file select
             }
         });
 
-        // Decode button
-        document.getElementById('decode-btn').addEventListener('click', () => this.decode());
+        // Auto-trigger decode on text input
+        const decodeText = document.getElementById('decode-text');
+        if (decodeText) {
+            decodeText.addEventListener('input', () => {
+                if (document.querySelector('input[name="decode-input-type"]:checked').value === 'text') {
+                    this.decode();
+                }
+            });
+        }
+        // Output type selector (auto trigger decode)
+        const decodeOutputTypeRadios = document.querySelectorAll('input[name="decode-output-type"]');
+        decodeOutputTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.decode();
+            });
+        });
+        // Remove decode button event binding
     }
 
     handleDecodeFile(file) {
@@ -218,7 +249,6 @@ class Base64Util {
         let base64String = document.getElementById('decode-text').value.trim();
 
         if (!base64String) {
-            this.showStatus('Please enter Base64 string to decode', 'error');
             return;
         }
 
@@ -477,14 +507,12 @@ class Base64Util {
         const encodeOutput = document.getElementById('encode-output');
         if (encodeInput && encodeOutput) {
             localStorage.setItem('b64util_encode_input', encodeInput.value || '');
-            localStorage.setItem('b64util_encode_output', encodeOutput.value || '');
         }
         // Save decode input and output
         const decodeInput = document.getElementById('decode-text');
         const decodeOutput = document.getElementById('decode-result-text');
         if (decodeInput && decodeOutput) {
             localStorage.setItem('b64util_decode_input', decodeInput.value || '');
-            localStorage.setItem('b64util_decode_output', decodeOutput.value || '');
         }
     }
 
@@ -492,9 +520,14 @@ class Base64Util {
         // Restore encode input and output
         const encodeInput = document.getElementById('encode-text');
         const encodeOutput = document.getElementById('encode-output');
-        if (encodeInput && encodeOutput) {
-            encodeInput.value = localStorage.getItem('b64util_encode_input') || '';
-            encodeOutput.value = localStorage.getItem('b64util_encode_output') || '';
+        if (encodeInput) {
+            const lastInput = localStorage.getItem('b64util_encode_input') || '';
+            encodeInput.value = lastInput;
+            // If there is a last encode input, trigger encode automatically
+            if (lastInput.trim()) {
+                // Use setTimeout to ensure DOM is ready and event listeners are bound
+                setTimeout(() => this.encode(), 0);
+            }
         }
         // Restore decode input and output
         const decodeInput = document.getElementById('decode-text');
@@ -502,7 +535,6 @@ class Base64Util {
         if (decodeInput && decodeOutput) {
             const lastInput = localStorage.getItem('b64util_decode_input') || '';
             decodeInput.value = lastInput;
-            decodeOutput.value = localStorage.getItem('b64util_decode_output') || '';
             // If there is a last decode input, trigger decode automatically
             if (lastInput.trim()) {
                 // Use setTimeout to ensure DOM is ready and event listeners are bound
@@ -566,7 +598,7 @@ function setTheme(dark) {
     }
 }
 // Load theme from localStorage, default to dark mode
-const savedTheme = localStorage.getItem('theme');
+const savedTheme = localStorage.getItem('theme') === null ? 'dark' : localStorage.getItem('theme');
 if (savedTheme === 'light') {
     setTheme(false);
 } else {
@@ -577,3 +609,16 @@ themeSwitchBtn.addEventListener('click', function() {
     setTheme(isDark);
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
+
+// On page load, check for last input value for decode
+const lastDecodeInput = localStorage.getItem('lastDecodeInput');
+if (lastDecodeInput) {
+    const decodeInput = document.getElementById('decode-input');
+    if (decodeInput) {
+        decodeInput.value = lastDecodeInput;
+        // Directly trigger decode function
+        if (typeof Base64Util !== 'undefined' && Base64Util.decode) {
+            Base64Util.decode();
+        }
+    }
+}
