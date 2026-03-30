@@ -17,6 +17,8 @@ class Base64Util {
         this.bindDecodeEvents();
         this.bindCopyButtons();
         this.bindDownloadButtons();
+        this.restoreFromLocalStorage();
+        this.attachLocalStorageListeners();
     }
 
     // ==================== Tab Navigation ====================
@@ -151,6 +153,7 @@ class Base64Util {
             };
             reader.readAsDataURL(this.encodeFile);
         }
+        this.saveToLocalStorage();
     }
 
     // ==================== Decode Events ====================
@@ -272,6 +275,7 @@ class Base64Util {
             console.error(error);
             this.showStatus('Invalid Base64 string', 'error');
         }
+        this.saveToLocalStorage();
     }
 
     showTextOutput(text) {
@@ -464,6 +468,58 @@ class Base64Util {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         this.showStatus(`Downloaded: ${filename}`, 'success');
+    }
+
+    // ==================== LocalStorage Persistence ====================
+    saveToLocalStorage() {
+        // Save encode input and output
+        const encodeInput = document.getElementById('encode-text');
+        const encodeOutput = document.getElementById('encode-output');
+        if (encodeInput && encodeOutput) {
+            localStorage.setItem('b64util_encode_input', encodeInput.value || '');
+            localStorage.setItem('b64util_encode_output', encodeOutput.value || '');
+        }
+        // Save decode input and output
+        const decodeInput = document.getElementById('decode-text');
+        const decodeOutput = document.getElementById('decode-result-text');
+        if (decodeInput && decodeOutput) {
+            localStorage.setItem('b64util_decode_input', decodeInput.value || '');
+            localStorage.setItem('b64util_decode_output', decodeOutput.value || '');
+        }
+    }
+
+    restoreFromLocalStorage() {
+        // Restore encode input and output
+        const encodeInput = document.getElementById('encode-text');
+        const encodeOutput = document.getElementById('encode-output');
+        if (encodeInput && encodeOutput) {
+            encodeInput.value = localStorage.getItem('b64util_encode_input') || '';
+            encodeOutput.value = localStorage.getItem('b64util_encode_output') || '';
+        }
+        // Restore decode input and output
+        const decodeInput = document.getElementById('decode-text');
+        const decodeOutput = document.getElementById('decode-result-text');
+        if (decodeInput && decodeOutput) {
+            const lastInput = localStorage.getItem('b64util_decode_input') || '';
+            decodeInput.value = lastInput;
+            decodeOutput.value = localStorage.getItem('b64util_decode_output') || '';
+            // If there is a last decode input, trigger decode automatically
+            if (lastInput.trim()) {
+                // Use setTimeout to ensure DOM is ready and event listeners are bound
+                setTimeout(() => this.decode(), 0);
+            }
+        }
+    }
+
+    attachLocalStorageListeners() {
+        const encodeInput = document.getElementById('encode-text');
+        const encodeOutput = document.getElementById('encode-output');
+        const decodeInput = document.getElementById('decode-text');
+        const decodeOutput = document.getElementById('decode-result-text');
+        if (encodeInput) encodeInput.addEventListener('input', () => this.saveToLocalStorage());
+        if (encodeOutput) encodeOutput.addEventListener('input', () => this.saveToLocalStorage());
+        if (decodeInput) decodeInput.addEventListener('input', () => this.saveToLocalStorage());
+        if (decodeOutput) decodeOutput.addEventListener('input', () => this.saveToLocalStorage());
     }
 
     // ==================== Utilities ====================
