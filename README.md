@@ -95,3 +95,6 @@ MIT License
 
 Contributions are welcome! Feel free to submit a Pull Request.
 
+## Demo
+
+[https://herusdianto.github.io/base64util/](https://herusdianto.github.io/base64util/)
